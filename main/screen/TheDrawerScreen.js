@@ -76,7 +76,7 @@ const TheDrawerScreen = props => {
               icon={({color, size}) => (
                 <Fa name="qrcode" color={color} size={size} />
               )}
-              label={() => <Text style={{color: '#fff'}}>Customer Areat</Text>}
+              label={() => <Text style={{color: '#fff'}}>Customer Area</Text>}
               onPress={() => {
                 props.navigation.navigate('CustomerArea');
               }}

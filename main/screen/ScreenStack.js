@@ -122,7 +122,7 @@ export const QRCODESTACKSCREEN = ({navigation}) => {
         name="QRCODESCREEN"
         component={QRCodeScreen}
         options={{
-          title: 'Scan Customer QRCODE',
+          title: 'QRCODE PAYMENT',
           headerLeft: () => (
             <Icon.Button
               name="ios-menu"
