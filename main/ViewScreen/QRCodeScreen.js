@@ -26,8 +26,10 @@ import {checkingObjectId} from '../helpers/reusable';
 import {useFocusEffect} from '@react-navigation/native';
 import CustomerProfile from '../../component/CustomerProfile';
 import randomNumber from 'random-number';
+import SmoothPinCodeInput from 'react-native-smooth-pincode-input';
 import DirectSms from 'react-native-direct-sms';
 import {logout, ScanCustomerInfo} from '../../redux/actions/auth.action';
+import AntIcon from 'react-native-vector-icons/AntDesign';
 const QRCodeScreen = props => {
   const dispatch = useDispatch();
   const {user} = useSelector(state => state.auth);
@@ -41,6 +43,7 @@ const QRCodeScreen = props => {
   const [password, setPassword] = useState({password: '', show: true});
   const [verifySms, setVerifySms] = useState('');
   const [onfocus, setOnFucos] = useState({email: false, password: false});
+  const [showBtnSms, setShowBtnSms] = useState(false);
   const NewSetup = () => {
     setScanning(false);
     setCustomer(null);
@@ -49,6 +52,7 @@ const QRCodeScreen = props => {
     setIsSendingSms(null);
     setVerifySms('');
     setOnFucos({email: false, password: false});
+    setShowBtnSms(false);
   };
   useFocusEffect(
     React.useCallback(() => {
@@ -80,11 +84,17 @@ const QRCodeScreen = props => {
           return;
         }
       } else {
+        setIsloading(false);
+        setScanning(false);
         dispatch(logout());
       }
     } else {
+      setIsloading(false);
+      setScanning(false);
       Alert.alert('Warning', 'QRCODE Information is not valid');
     }
+    setIsloading(false);
+    setScanning(false);
   };
   const authenticatePassword = () => {
     setIsloading(true);
@@ -117,13 +127,18 @@ const QRCodeScreen = props => {
     }
   };
   const authenticateSms = () => {
-    console.log(isSendingSms, verifySms);
     if (verifySms == isSendingSms) {
       Alert.alert('Verified', `Successfully Veried`);
       NewSetup();
     } else {
       Alert.alert('Invalid', 'Verification Number Does not match');
     }
+  };
+  const handleReplace = str => {
+    return str.replace(
+      str.substr(1, str.length - 3),
+      str.substr(1, str.length - 3).replace(/./g, '*'),
+    );
   };
   return (
     <View style={container}>
@@ -134,6 +149,24 @@ const QRCodeScreen = props => {
         </View>
       ) : customer ? (
         <CustomerProfile customer={customer}>
+          <TouchableOpacity
+            style={{marginLeft: 10, marginTop: 6}}
+            onPress={() => {
+              Alert.alert(
+                'Are You sure?',
+                'You want to cancel this transaction?',
+                [
+                  {
+                    text: 'Cancel',
+                    onPress: () => {},
+                    style: 'cancel',
+                  },
+                  {text: 'OK', onPress: () => setCustomer(null)},
+                ],
+              );
+            }}>
+            <AntIcon name="back" size={25} />
+          </TouchableOpacity>
           <View style={styles.authenticationView}>
             <Caption style={styles.authenticationCaption}>
               Authentication
@@ -156,7 +189,38 @@ const QRCodeScreen = props => {
               <Caption style={{textAlign: 'center'}}>authenticating...</Caption>
             </View>
           ) : isSendingSms ? (
-            <Text>Sending Sms</Text>
+            <View style={styles.viewInput}>
+              <Text style={{textAlign: 'center', width}}>
+                Please enter the verification code we send to{' '}
+                {handleReplace(customer.phone)} phone number
+              </Text>
+              <SmoothPinCodeInput
+                cellStyle={{
+                  borderBottomWidth: 2,
+                  borderColor: 'gray',
+                }}
+                cellStyleFocused={{
+                  borderColor: 'black',
+                }}
+                value={verifySms}
+                onTextChange={code => {
+                  setVerifySms(code);
+                }}
+                codeLength={6}
+                onFulfill={() => {
+                  setShowBtnSms(true);
+                }}
+              />
+              {showBtnSms ? (
+                <Button
+                  style={styles.buttonStyle}
+                  icon="login"
+                  mode="contained"
+                  onPress={authenticateSms}>
+                  Authenticate
+                </Button>
+              ) : null}
+            </View>
           ) : (
             <>
               <View style={styles.viewInput}>
@@ -328,6 +392,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width,
+    position: 'absolute',
+    top: 0,
   },
   authenticationCaption: {
     fontSize: 20,

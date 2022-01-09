@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {View, StyleSheet} from 'react-native';
+import {View, StyleSheet, TouchableOpacity} from 'react-native';
 import QRCodeScanner from 'react-native-qrcode-scanner';
 import RNSystemSounds from '@dashdoc/react-native-system-sounds';
 import {RNCamera} from 'react-native-camera';
@@ -44,12 +44,13 @@ const AddCustomerToDepositBranch = props => {
               markerStyle={{borderColor: '#fff', borderRadius: 10}}
             />
 
-            <Button
-              mode="contained"
-              onPress={() => setCameraType(!cameratype)}
-              style={styles.changingCamera}>
+            <TouchableOpacity
+              style={styles.changingCamera}
+              onPress={() => {
+                setCameraType(!cameratype);
+              }}>
               <Icon size={30} name="camera-retake-outline" />
-            </Button>
+            </TouchableOpacity>
           </View>
           <View style={styles.headingContainer}>
             <LinearGradient
@@ -99,7 +100,6 @@ const styles = StyleSheet.create({
     bottom: 10,
     left: '45%',
     color: '#ffffff',
-    backgroundColor: '#ddeedd',
   },
   constainerLoading: {
     flex: 1,

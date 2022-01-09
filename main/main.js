@@ -39,10 +39,12 @@ export const Main = props => {
     } else {
       dispatch(disconnectSocketConnect());
     }
+
     // eslint-disable-next-line
   }, [token]);
   useEffect(() => {
     LogBox.ignoreLogs(['...']);
+    dispatch(newBuildConnection());
     if (token) {
       if (user) {
         dispatch(checkIsStillValidOwner({token, _id: user._id}));
