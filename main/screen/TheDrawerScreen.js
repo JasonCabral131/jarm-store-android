@@ -33,10 +33,12 @@ const TheDrawerScreen = props => {
               />
               <View style={{justifyContent: 'center', alignContent: 'center'}}>
                 <Title style={{textAlign: 'center', color: '#ffffff'}}>
-                  {user.branch_name + ' Store'}
+                  {user?.branch_name + ' Store'}
                 </Title>
                 <Caption style={{textAlign: 'center', color: '#605B6B'}}>
-                  {JSON.parse(user.branch_address).fullAddress}
+                  {typeof user.branch_address === 'string'
+                    ? JSON.parse(user.branch_address).fullAddress
+                    : user.branch_address.fullAddress}
                 </Caption>
               </View>
             </View>

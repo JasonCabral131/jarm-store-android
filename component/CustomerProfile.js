@@ -3,6 +3,7 @@ import {View, Image, StyleSheet, Dimensions} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {Headline, Avatar, Caption, Paragraph} from 'react-native-paper';
 import {useSelector} from 'react-redux';
+import {toCapitalized} from '../main/helpers/reusable';
 const CustomerProfile = ({customer, children}) => {
   const {container} = styles;
   const {user} = useSelector(state => state.auth);
@@ -24,12 +25,16 @@ const CustomerProfile = ({customer, children}) => {
         <View style={styles.lining} />
         <Avatar.Image
           size={64}
-          source={{uri: imageAddress}}
+          source={{uri: customer ? customer.profile.url : imageAddress}}
           style={styles.avatarStyle}
         />
         <View style={styles.userInfo}>
           <Paragraph style={{display: 'flex', textAlign: 'right'}}>
-            Jason P. Cabral
+            {toCapitalized(
+              customer
+                ? `${customer.firstname} ${customer.lastname}`
+                : 'Jason Cabral',
+            )}
           </Paragraph>
         </View>
         <Caption
@@ -37,9 +42,13 @@ const CustomerProfile = ({customer, children}) => {
             display: 'flex',
             textAlign: 'right',
             fontSize: 12,
-            marginTop: 22,
+            marginTop: 25,
           }}>
-          San Antonio Street, San Antonio Poblacion, Dagami Leyte
+          {toCapitalized(
+            customer
+              ? `${customer.address.fullAddress}`
+              : 'San Antonio Street, San Antonio Poblacion, Dagami Leyte',
+          )}
         </Caption>
       </LinearGradient>
       <View style={{marginTop: 10}}>{children}</View>
@@ -54,10 +63,11 @@ const styles = StyleSheet.create({
     width,
     margin: 0,
     padding: 0,
+    height: '100%',
   },
   linearGradient: {
     width: width,
-    height: 200,
+    height: 250,
     borderBottomColor: '#EAECEE',
     borderBottomWidth: 1,
     elevation: 2,
@@ -80,7 +90,7 @@ const styles = StyleSheet.create({
   },
   lining: {
     position: 'absolute',
-    top: '75%',
+    top: '62%',
     right: 5,
     width: '65%',
 
@@ -89,16 +99,23 @@ const styles = StyleSheet.create({
   },
   avatarStyle: {
     position: 'absolute',
-    top: '63%',
+    top: '50%',
     right: 10,
     background: '#ffffff',
   },
   userInfo: {
     position: 'absolute',
-    top: '80%',
+    top: '64%',
     right: '22%',
     width,
     display: 'flex',
     textAlign: 'right',
+  },
+  childrenContent: {
+    marginTop: 20,
+    width,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

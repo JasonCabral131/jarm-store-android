@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   dropdownProduct: {
-    width: width,
+    width: width + 200,
     margin: 4,
     elevation: 2,
     backgroundColor: '#b0b0b0',

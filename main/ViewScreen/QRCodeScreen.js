@@ -5,36 +5,50 @@ import {
   Alert,
   TouchableOpacity,
   Dimensions,
+  PermissionsAndroid,
 } from 'react-native';
 import QRCodeScanner from 'react-native-qrcode-scanner';
 import RNSystemSounds from '@dashdoc/react-native-system-sounds';
 import {RNCamera} from 'react-native-camera';
-import {ActivityIndicator, Caption, Headline, Text} from 'react-native-paper';
+import MIcon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {
+  ActivityIndicator,
+  Caption,
+  Headline,
+  Text,
+  TextInput,
+  Button,
+} from 'react-native-paper';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {useSelector} from 'react-redux';
+import {useSelector, useDispatch} from 'react-redux';
 import {checkingObjectId} from '../helpers/reusable';
 import {useFocusEffect} from '@react-navigation/native';
 import CustomerProfile from '../../component/CustomerProfile';
+import randomNumber from 'random-number';
+import DirectSms from 'react-native-direct-sms';
+import {logout, ScanCustomerInfo} from '../../redux/actions/auth.action';
 const QRCodeScreen = props => {
-  const [phone, setPhone] = React.useState('');
+  const dispatch = useDispatch();
   const {user} = useSelector(state => state.auth);
   const [cameratype, setCameraType] = useState(false);
   const {container, qrcodeContainer, addContainerView, constainerLoading} =
     styles;
   const [scanning, setScanning] = useState(false);
-  const [customer, setCustomer] = useState({time: 'hello'});
+  const [customer, setCustomer] = useState(null);
   const [isSendingSms, setIsSendingSms] = useState(null);
   const [isLoading, setIsloading] = useState(false);
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState({password: '', show: true});
   const [verifySms, setVerifySms] = useState('');
+  const [onfocus, setOnFucos] = useState({email: false, password: false});
   const NewSetup = () => {
     setScanning(false);
-    setCustomer({time: 'hello'});
+    setCustomer(null);
     setIsloading(false);
-    setPassword('');
+    setPassword({password: '', show: true});
     setIsSendingSms(null);
     setVerifySms('');
+    setOnFucos({email: false, password: false});
   };
   useFocusEffect(
     React.useCallback(() => {
@@ -45,7 +59,7 @@ const QRCodeScreen = props => {
       };
     }, []),
   );
-  const ifScanneed = data => {
+  const ifScanneed = async data => {
     RNSystemSounds.beep();
     setScanning(true);
     const isGo =
@@ -53,8 +67,62 @@ const QRCodeScreen = props => {
         ? checkingObjectId(data.data)
         : checkingObjectId(data);
     if (isGo) {
+      if (user) {
+        const customer = typeof data === 'object' ? data.data : data;
+        setIsloading(true);
+        const res = await dispatch(
+          ScanCustomerInfo({customer, branch: user._id}),
+        );
+        setIsloading(false);
+        setScanning(false);
+        if (res.result) {
+          setCustomer(res.customer);
+          return;
+        }
+      } else {
+        dispatch(logout());
+      }
     } else {
       Alert.alert('Warning', 'QRCODE Information is not valid');
+    }
+  };
+  const authenticatePassword = () => {
+    setIsloading(true);
+    setTimeout(() => {
+      setIsloading(false);
+    }, 2000);
+  };
+  const sendDirectSms = async (phone, generatedNumber) => {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.SEND_SMS,
+        {
+          title: 'App Sms Permission',
+          message:
+            'App needs access to your inbox' +
+            'so you can send messages in background.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
+      );
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        const MessageInfo = `Your Verification Number: ${generatedNumber}`;
+        DirectSms.sendDirectSms(phone, MessageInfo);
+      } else {
+        console.log('SMS permission denied');
+      }
+    } catch (err) {
+      console.warn(err);
+    }
+  };
+  const authenticateSms = () => {
+    console.log(isSendingSms, verifySms);
+    if (verifySms == isSendingSms) {
+      Alert.alert('Verified', `Successfully Veried`);
+      NewSetup();
+    } else {
+      Alert.alert('Invalid', 'Verification Number Does not match');
     }
   };
   return (
@@ -62,14 +130,87 @@ const QRCodeScreen = props => {
       {scanning ? (
         <View style={constainerLoading}>
           <ActivityIndicator animating={true} color={'#ed1c24'} size={100} />
-          <Caption style={{textAlign: 'center'}}>Wait Sending Data...</Caption>
+          <Caption style={{textAlign: 'center'}}>authenticating......</Caption>
         </View>
       ) : customer ? (
         <CustomerProfile customer={customer}>
-          {isSendingSms ? (
+          <View style={styles.authenticationView}>
+            <Caption style={styles.authenticationCaption}>
+              Authentication
+            </Caption>
+            <MIcon
+              name="security-network"
+              size={40}
+              style={{marginLeft: 10}}
+              color={'#E55353'}
+            />
+          </View>
+
+          {isLoading ? (
+            <View style={styles.authenticatingLoading}>
+              <ActivityIndicator
+                animating={true}
+                color={'#ed1c24'}
+                size={100}
+              />
+              <Caption style={{textAlign: 'center'}}>authenticating...</Caption>
+            </View>
+          ) : isSendingSms ? (
             <Text>Sending Sms</Text>
           ) : (
-            <Text>Sending Password</Text>
+            <>
+              <View style={styles.viewInput}>
+                <TextInput
+                  style={{
+                    ...styles.inputStyle,
+                  }}
+                  label="Password"
+                  placeholder="Password"
+                  right={
+                    <TextInput.Icon
+                      name={`${password.show ? 'eye' : 'eye-off'}`}
+                      onPress={() => {
+                        setPassword(prev => {
+                          return {...prev, show: !password.show};
+                        });
+                      }}
+                      color={'#9C98A6'}
+                    />
+                  }
+                  onFocus={e => {
+                    setOnFucos({...onfocus, password: true});
+                  }}
+                  onBlur={e => {
+                    setOnFucos({...onfocus, password: false});
+                  }}
+                  value={password.password}
+                  onChangeText={text =>
+                    setPassword(prev => {
+                      return {...prev, password: text};
+                    })
+                  }
+                  secureTextEntry={password.show}
+                  placeholderTextColor={'#443F51'}
+                  theme={{
+                    colors: {
+                      text: '#3C4B64',
+                      accent: '#559ED7',
+                      primary: '#a3d1ff',
+                      background: 'transparent',
+                    },
+                  }}
+                  underlineColor="#201A30"
+                  underlineColorAndroid="#201A30"
+                />
+                <Button
+                  style={styles.buttonStyle}
+                  icon="login"
+                  mode="contained"
+                  onPress={authenticatePassword}>
+                  Authenticate
+                </Button>
+              </View>
+            </>
           )}
         </CustomerProfile>
       ) : (
@@ -166,5 +307,47 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     width: '100%',
     height: '15%',
+  },
+  inputStyle: {
+    alignSelf: 'center',
+    width: '100%',
+    letterSpacing: 3,
+  },
+  viewInput: {
+    width: '95%',
+    position: 'relative',
+    marginTop: 20,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+  },
+  authenticationView: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width,
+  },
+  authenticationCaption: {
+    fontSize: 20,
+    marginTop: 20,
+    textAlign: 'center',
+    fontWeight: '800',
+  },
+  buttonStyle: {
+    alignSelf: 'center',
+    width: '80%',
+    padding: 10,
+    marginTop: 30,
+    backgroundColor: '#0DF5E3',
+    borderRadius: 30,
+  },
+  authenticatingLoading: {
+    marginTop: 25,
+    width,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

@@ -1,3 +1,4 @@
+import {Alert} from 'react-native';
 import axiosInstance from '../../main/helpers/axios';
 import {authConstant} from './../constants/index';
 import {newBuildConnection} from './buildConnection.action';
@@ -35,5 +36,68 @@ export const logout = () => {
   return async dispatch => {
     dispatch(newBuildConnection());
     dispatch({type: authConstant.LOGOUT_SUCCESS});
+  };
+};
+export const ScanCustomerInfo = data => {
+  return async dispatch => {
+    try {
+      const res = await axiosInstance.post('/scan-customer-branch', data);
+      if (res.status === 200) {
+        return {result: true, customer: res.data.customer};
+      }
+      Alert.alert('Warning', 'Customer Not Found');
+      return {result: false};
+    } catch (e) {
+      Alert.alert('Warning', 'Invalid Customer');
+      console.log(e.response.data);
+      return {result: false};
+    }
+  };
+};
+export const verifyCustomerPassword = data => {
+  return async dispatch => {
+    try {
+      const res = await axiosInstance.post(
+        '/authenticate-customer-branch',
+        data,
+      );
+      if (res.status === 200) {
+        Alert.alert('Success', 'Authenticated Successfully');
+        return true;
+      }
+      Alert.alert('Warning', 'Invalid Password');
+      return false;
+    } catch (e) {
+      Alert.alert('Warning', 'Invalid Password');
+      return false;
+    }
+  };
+};
+export const checkIsStillValidOwner = data => {
+  return async dispatch => {
+    try {
+      const res = await axiosInstance.post('/is-grant-access-owner', {
+        ...data,
+      });
+      if (res.status === 200) {
+        const {user, token} = res.data;
+        await dispatch({
+          type: authConstant.LOGIN_SUCCESS,
+          payload: {
+            token,
+            user,
+          },
+        });
+        return {result: true};
+      } else {
+        dispatch(logout());
+        dispatch(newBuildConnection());
+        return {result: false};
+      }
+    } catch (e) {
+      dispatch(logout());
+      dispatch(newBuildConnection());
+      return {result: false};
+    }
   };
 };
