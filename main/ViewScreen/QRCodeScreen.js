@@ -28,11 +28,16 @@ import CustomerProfile from '../../component/CustomerProfile';
 import randomNumber from 'random-number';
 import SmoothPinCodeInput from 'react-native-smooth-pincode-input';
 import DirectSms from 'react-native-direct-sms';
-import {logout, ScanCustomerInfo} from '../../redux/actions/auth.action';
+import {
+  logout,
+  ScanCustomerInfo,
+  verifyCustomerPassword,
+} from '../../redux/actions/auth.action';
 import AntIcon from 'react-native-vector-icons/AntDesign';
 const QRCodeScreen = props => {
   const dispatch = useDispatch();
   const {user} = useSelector(state => state.auth);
+  const {socket} = useSelector(state => state.socket);
   const [cameratype, setCameraType] = useState(false);
   const {container, qrcodeContainer, addContainerView, constainerLoading} =
     styles;
@@ -44,6 +49,7 @@ const QRCodeScreen = props => {
   const [verifySms, setVerifySms] = useState('');
   const [onfocus, setOnFucos] = useState({email: false, password: false});
   const [showBtnSms, setShowBtnSms] = useState(false);
+  const {connectionId} = useSelector(state => state.buildConnection);
   const NewSetup = () => {
     setScanning(false);
     setCustomer(null);
@@ -96,11 +102,45 @@ const QRCodeScreen = props => {
     setIsloading(false);
     setScanning(false);
   };
-  const authenticatePassword = () => {
+  const authenticatePassword = async () => {
     setIsloading(true);
-    setTimeout(() => {
+    if (!customer) {
+      Alert.alert('Failed', 'Invalid Customer');
+      setCustomer(null);
       setIsloading(false);
-    }, 2000);
+      return;
+    }
+    if (password.password.length < 1) {
+      Alert.alert('Failed', 'Password Required');
+      setIsloading(false);
+      return;
+    }
+    const res = await dispatch(
+      verifyCustomerPassword({
+        customer: customer._id,
+        password: password.password,
+      }),
+    );
+    setIsloading(false);
+    if (res) {
+      const gen = randomNumber.generator({
+        min: -10000,
+        max: 1000000,
+        integer: true,
+      });
+
+      const verificationNumber = gen(100000);
+      console.log(verificationNumber);
+      await sendDirectSms(customer.phone, verificationNumber);
+      Alert.alert(
+        'Success',
+        'Verication number has been sent to your phone number',
+      );
+      console.log(verificationNumber);
+      setIsSendingSms(verificationNumber);
+      setPassword({password: '', show: true});
+      return;
+    }
   };
   const sendDirectSms = async (phone, generatedNumber) => {
     try {
@@ -128,8 +168,24 @@ const QRCodeScreen = props => {
   };
   const authenticateSms = () => {
     if (verifySms == isSendingSms) {
-      Alert.alert('Verified', `Successfully Veried`);
-      NewSetup();
+      if (socket) {
+        setIsloading(true);
+        socket.emit(
+          'customer-payless-transaction',
+          {connectionId, customer, branch: user._id},
+          data => {
+            setIsloading(false);
+            if (!data.result) {
+              Alert.alert('Warning', data.message);
+              NewSetup();
+              return;
+            } else {
+              Alert.alert('Success', 'Customer Verified Successfully');
+            }
+            NewSetup();
+          },
+        );
+      }
     } else {
       Alert.alert('Invalid', 'Verification Number Does not match');
     }
@@ -161,7 +217,7 @@ const QRCodeScreen = props => {
                     onPress: () => {},
                     style: 'cancel',
                   },
-                  {text: 'OK', onPress: () => setCustomer(null)},
+                  {text: 'OK', onPress: () => NewSetup()},
                 ],
               );
             }}>

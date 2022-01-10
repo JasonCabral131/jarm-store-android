@@ -29,9 +29,9 @@ export const TheNavigation = props => {
   useEffect(() => {
     if (socket) {
       socket.on('disconnected-from-server', async data => {
-        if (data.toString() === connectionId.toString()) {
-          dispatch(newBuildConnection());
-        }
+        // if (data.toString() === connectionId.toString()) {
+        //   dispatch(newBuildConnection());
+        // }
       });
     }
   }, [socket]);

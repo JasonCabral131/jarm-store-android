@@ -45,8 +45,10 @@ export const ScanCustomerInfo = data => {
       if (res.status === 200) {
         return {result: true, customer: res.data.customer};
       }
-      Alert.alert('Warning', 'Customer Not Found');
-      return {result: false};
+      if (res.status === 203) {
+        Alert.alert('Warning', res.data.msg);
+        return {result: false};
+      }
     } catch (e) {
       Alert.alert('Warning', 'Invalid Customer');
       console.log(e.response.data);
